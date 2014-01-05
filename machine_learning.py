@@ -106,7 +106,7 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
             recall = perf_measures[i][1][:, j]
             f1 = array([ (2*p*r)/(p+r) for p,r in zip(precision,recall) ])
             p_dev = precision.std()*2
-            r_dev = r.std()*2
+            r_dev = recall.std()*2
             f_dev = f1.std()*2
             p_mean = precision.mean() 
             r_mean = recall.mean()
