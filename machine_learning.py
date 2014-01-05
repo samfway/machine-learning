@@ -183,10 +183,12 @@ def plot_data(otu_matrix, class_labels, sample_ids):
         plt.plot(kpca_otu_matrix[select, 0], kpca_otu_matrix[select, 1], 'o', label=label) 
     plt.show()
 
-def build_classifier(*args, **kwargs):
+def build_classifier(sk_module, sk_classifier, **kwargs):
     """ Eventually, this function will build a classifer from a list of 
         valid classifiers... or be deleted.  Likely the latter """ 
-    return build_rf()
+    classifier = getattr(getattr(__import__('sklearn', fromlist=[sk_module]), sk_module), sk_classifier)()
+    classifier.set_params(**kwargs)
+    return classifier
 
 def build_svm():
     """ Builds a standard SVM classifier """ 
@@ -200,11 +202,12 @@ def build_rf():
 
 def build_list_of_classifiers():
     """ Get list of different classifiers """ 
-    classifiers = [ svm.SVC(), \
-        RandomForestClassifier(n_estimators=10), \
-        NearestCentroid(), \
-        AdaBoostClassifier() ] 
-    classifier_names = ['svm', 'rf', 'nsc', 'adaboost']
+    classifiers = [ build_classifier('svm','SVC', **{'kernel':'rbf'}), \
+            build_classifier('svm','SVC', **{'kernel':'linear'}), \
+            build_classifier('ensemble', 'RandomForestClassifier', **{'n_estimators': 10}), \
+            build_classifier('neighbors', 'NearestCentroid'), \
+            build_classifier('ensemble', 'AdaBoostClassifier') ]
+    classifier_names = ['svm-rbf', 'svm-lin', 'rf', 'nsc', 'adaboost'] 
     return classifiers, classifier_names
     
         
