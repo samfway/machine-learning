@@ -55,7 +55,7 @@ def make_confusion_matrix_plot(confusion_matrix, labels, output_filename):
         max_value = 1.0 # matrix is normalized 
 
     fig, ax = plt.subplots()
-    heatmap = ax.pcolor(confusion_matrix, cmap=plt.cm.Blues)
+    heatmap = ax.pcolor(confusion_matrix, cmap=plt.cm.Spectral)
     ax.set_xticks(arange(confusion_matrix.shape[0])+0.5, minor=False)
     ax.set_yticks(arange(confusion_matrix.shape[1])+0.5, minor=False)
     ax.invert_yaxis()
