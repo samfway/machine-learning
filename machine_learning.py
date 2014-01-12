@@ -12,20 +12,18 @@ __status__ = "Development"
 """ Machine Learning playground script 
 """
 
-from numpy import asarray, array
-from random import shuffle
 from biom.parse import parse_biom_table
 from biom.table import DenseTable
+from collections import Counter
+from numpy import asarray, array
 from qiime.parse import parse_mapping_file_to_dict
-from sklearn import svm
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors.nearest_centroid import NearestCentroid
-from sklearn.ensemble import AdaBoostClassifier
+from random import shuffle
+from sklearn import grid_search
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
 from sklearn.metrics import classification_report, precision_score, recall_score
-from collections import Counter
 import matplotlib.pyplot as plt
+import ML_helpers
 import warnings
 
 def parse_otu_matrix(biom_file):
@@ -96,14 +94,14 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
     """ Evaluates each classifier in a list of classifiers, for a given test set """ 
     unique_labels = list(set(class_labels))
     label_length = max([len(label) for label in unique_labels])
-    label_dict = { key:value for key, value in zip(unique_labels, range(len(unique_labels))) } 
-    perf_measures = [ tuple(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets)) \
-        for classifier in list_of_classifiers ]
+    perf_measures = []
+    for classifier in list_of_classifiers:
+        perf_measures.append(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets)) 
     for j in xrange(len(unique_labels)):
         print unique_labels[j]
-        for i in xrange(len(list_of_classifiers)):
-            precision = perf_measures[i][0][:, j]
-            recall = perf_measures[i][1][:, j]
+        for i, perf in enumerate(perf_measures):
+            precision = perf[0][:, j]
+            recall = perf[1][:, j]
             f1 = array([ (2*p*r)/(p+r) for p,r in zip(precision,recall) ])
             p_dev = precision.std()*2
             r_dev = recall.std()*2
@@ -114,14 +112,14 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
             name = classifier_names[i]
             print '[%s]%s\tPrecision: %.2f (+/- %.2f)\tRecall: %.2f (+/- %.2f) \t F1: %.2f (+/- %.2f)' % \
                 (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev)   
-        print '' 
+        print ''
 
 def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets):
     """ Returns precision and recall measures for the provided classifier on each
         of the test sets given.  
     """
     unique_labels = list(set(class_labels))
-    label_dict = { key:value for key, value in zip(unique_labels, range(len(unique_labels))) } 
+    label_dict = { key:value for value, key in enumerate(unique_labels) } 
 
     precision_scores = [] 
     recall_scores = [] 
@@ -129,10 +127,8 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
     for train, test in test_sets:
         dev_data = otu_matrix[train,:]
         dev_labels = class_labels[train]
-        dev_ids = sample_ids[train]  
         test_data = otu_matrix[test,:]
         test_labels = class_labels[test]
-        test_ids = sample_ids[test]
 
         classifier.fit(dev_data, dev_labels)
         predictions = classifier.predict(test_data) 
@@ -158,7 +154,7 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
 
     precision_scores = array(precision_scores)
     recall_scores = array(recall_scores)
-    return precision_scores, recall_scores
+    return (precision_scores, recall_scores)
 
 def plot_data(otu_matrix, class_labels, sample_ids):
     """ For when you just want to look at some damn data """ 
@@ -184,30 +180,38 @@ def plot_data(otu_matrix, class_labels, sample_ids):
     plt.show()
 
 def build_classifier(sk_module, sk_classifier, **kwargs):
-    """ Eventually, this function will build a classifer from a list of 
-        valid classifiers... or be deleted.  Likely the latter """ 
+    """ Create classifiers from string inputs. """
     classifier = getattr(getattr(__import__('sklearn', fromlist=[sk_module]), sk_module), sk_classifier)()
     classifier.set_params(**kwargs)
     return classifier
 
-def build_svm():
-    """ Builds a standard SVM classifier """ 
-    classifier = svm.SVC()
-    return classifier 
-
-def build_rf():
-    """ Builds a standard Random Forest classifier """ 
-    classifier = RandomForestClassifier(n_estimators=10)
-    return classifier 
-
-def build_list_of_classifiers():
-    """ Get list of different classifiers """ 
-    classifiers = [ build_classifier('svm','SVC', **{'kernel':'rbf'}), \
-            build_classifier('svm','SVC', **{'kernel':'linear'}), \
-            build_classifier('ensemble', 'RandomForestClassifier', **{'n_estimators': 10}), \
-            build_classifier('neighbors', 'NearestCentroid'), \
-            build_classifier('ensemble', 'AdaBoostClassifier') ]
-    classifier_names = ['svm-rbf', 'svm-lin', 'rf', 'nsc', 'adaboost'] 
+def build_list_of_classifiers(sklearn_file=None):
+    """ Build a list of classifiers based on either a scikit-learn configuration file, or 
+        using default values. 
+    """ 
+    if sklearn_file == None:
+        classifiers = [ build_classifier('svm','SVC', **{'kernel':'rbf'}), \
+                build_classifier('svm','SVC', **{'kernel':'linear'}) ]#, \
+                #build_classifier('ensemble', 'RandomForestClassifier', **{'n_estimators': 10}), \
+                #build_classifier('neighbors', 'NearestCentroid'), \
+                #build_classifier('ensemble', 'AdaBoostClassifier') ]
+        classifier_names = ['svm-rbf', 'svm-lin']#, 'rf', 'nsc', 'adaboost'] 
+    else:
+        classifiers = []
+        classifier_names = []
+        with open(sklearn_file, 'r') as f:
+            for line in f:
+                input = line.strip().split('\t')
+                name = input[1]
+                parameters = {}
+                for p in input[2:]:
+                    param = p.split('=')
+                    if param[0] == 'name':
+                        name = param[1]
+                    else:
+                        parameters[param[0]] = ML_helpers.cast(param[1])
+                classifier = build_classifier(input[0], input[1], **parameters)
+                classifiers.append(classifier)
+                classifier_names.append(name)
     return classifiers, classifier_names
-    
         

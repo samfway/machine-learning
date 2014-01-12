@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from numpy import array
 import argparse
-import machine_learning as ML 
+import machine_learning as ML
+import sys
 
 def interface():
     args = argparse.ArgumentParser(
@@ -19,6 +20,7 @@ def interface():
                             default=10, type=int)
     args.add_argument('-c', '--metadata-category', help='Metadata category')
     args.add_argument('-v', '--metadata-value', help='Metadata value') 
+    args.add_argument('-s', '--sklearn-file', help='Scikit-learn configuration file')
     args = args.parse_args()
     return args
 
@@ -44,19 +46,17 @@ if __name__=="__main__":
         otu_matrix, sample_ids, class_labels = ML.sync_labels_and_otu_matrix(otu_matrix, \
             sample_ids, label_dict)
 
-    #list_of_classifiers = [ML.build_svm(), ML.build_rf()] 
-    #name_of_classifiers = ['svm', 'rf']
-    list_of_classifiers, name_of_classifiers = ML.build_list_of_classifiers()
+    list_of_classifiers, name_of_classifiers = ML.build_list_of_classifiers(args.sklearn_file)
     test_sets = ML.get_test_sets(class_labels, args.num_folds)
 
     ML.compare_classifiers(list_of_classifiers, name_of_classifiers, otu_matrix, class_labels, \
         sample_ids, test_sets)
 
-    otu_matrix = ML.reduce_dimensionality(otu_matrix)
+    #otu_matrix = ML.reduce_dimensionality(otu_matrix)
 
-    print '--- AFTER REDUCING DIMENSIONALITY TO k=10 ---' 
-    ML.compare_classifiers(list_of_classifiers, name_of_classifiers, otu_matrix, class_labels, \
-        sample_ids, test_sets)
+    #print '--- AFTER REDUCING DIMENSIONALITY TO k=10 ---' 
+    #ML.compare_classifiers(list_of_classifiers, name_of_classifiers, otu_matrix, class_labels, \
+    #    sample_ids, test_sets)
 
     #ML.plot_data(otu_matrix, class_labels, sample_ids)
     #classifier = ML.build_classifier()
