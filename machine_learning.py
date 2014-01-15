@@ -15,13 +15,14 @@ __status__ = "Development"
 from biom.parse import parse_biom_table
 from biom.table import DenseTable
 from collections import Counter
-from numpy import asarray, array
+from numpy import asarray, array, delete, mean
 from qiime.parse import parse_mapping_file_to_dict
 from random import shuffle
 from sklearn import grid_search
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
-from sklearn.metrics import classification_report, precision_score, recall_score
+from sklearn.feature_selection import SelectKBest, chi2, f_classif 
+from sklearn.metrics import classification_report, precision_score, recall_score, accuracy_score
 import matplotlib.pyplot as plt
 import ML_helpers
 import warnings
@@ -90,13 +91,30 @@ def compare_tSVD(classifier, otu_matrix, class_labels, sample_ids, test_sets):
     print '\nWITH tSVD:'
     evaluate_classifier(classifier, svd_otu_matrix, class_labels, sample_ids, test_sets)
 
-def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class_labels, sample_ids, test_sets):
+def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class_labels, sample_ids, \
+        test_sets, find_best_features, output_file):
     """ Evaluates each classifier in a list of classifiers, for a given test set """ 
     unique_labels = list(set(class_labels))
     label_length = max([len(label) for label in unique_labels])
     perf_measures = []
+    
+    # Find most significant features if requested
+    k_best_features = None
+    if find_best_features:
+        selector = SelectKBest(chi2)
+        selector.fit(otu_matrix, class_labels)
+        
+        # Get indexes of k-best features
+        k = min(30, int(.1 * len(otu_matrix[0])))
+        k_best_features = sorted(range(len(selector.scores_)), key=lambda n: selector.scores_[n], \
+                reverse=True)[:k]
+        
+    # Evaluate classifiers
     for classifier in list_of_classifiers:
-        perf_measures.append(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets)) 
+        perf_measures.append(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, \
+                test_sets, k_best_features)) 
+    
+    # Print recall and precision scores
     for j in xrange(len(unique_labels)):
         print unique_labels[j]
         for i, perf in enumerate(perf_measures):
@@ -114,7 +132,17 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
                 (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev)   
         print ''
 
-def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets):
+    # Create accuracy report
+    f_out = open(output_file, 'w')
+    for i, perf in enumerate(perf_measures):
+        f_out.write('Classifier %s:' % classifier_names[i])
+        f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
+        for key, value in perf[3].items():
+            f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, value))
+        f_out.write('\n')
+    f_out.close()
+
+def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets, k_best_features):
     """ Returns precision and recall measures for the provided classifier on each
         of the test sets given.  
     """
@@ -123,6 +151,7 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
 
     precision_scores = [] 
     recall_scores = [] 
+    accuracy_scores = []
 
     for train, test in test_sets:
         dev_data = otu_matrix[train,:]
@@ -131,13 +160,30 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
         test_labels = class_labels[test]
 
         classifier.fit(dev_data, dev_labels)
-        predictions = classifier.predict(test_data) 
+        predictions = classifier.predict(test_data)
         #print(classification_report(test_labels, predictions))
         # classification report, you snazzy... 
 
         test_labels_int = [ label_dict[x] for x in test_labels ] 
         predictions_int = [ label_dict[x] for x in predictions ] 
         
+        feature_removed_mean_accuracy = {}
+        if k_best_features:
+            for index in k_best_features:
+                # Calling remove_single_feature within the test_sets for loop so that we're not holding 
+                # all k otu_matrix_removed matrices in memory at once. This means we're calling 
+                # numpy.delete more times though. Not sure which is best.
+                otu_matrix_removed = delete(otu_matrix, index, 1)
+                dev_data_removed = otu_matrix_removed[train,:]
+                test_data_removed = otu_matrix_removed[test,:]
+                
+                classifier.fit(dev_data_removed, dev_labels)
+                predictions_removed = classifier.predict(test_data_removed)
+                predictions_removed_int = [ label_dict[x] for x in predictions_removed ]
+
+                feature_removed_mean_accuracy[index] = mean(accuracy_score(test_labels_int, \
+                        predictions_removed_int))
+
         """ If no predictions are made for class c, scikit raises a warning about there
             being no true or false positives.  With such a small amount of data, this is 
             entirely possible.  What's not possible is for there to be no true positives 
@@ -151,10 +197,9 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
             warnings.simplefilter("ignore")
             precision_scores.append(precision_score(test_labels_int, predictions_int, average=None))
             recall_scores.append(recall_score(test_labels_int, predictions_int, average=None))
+            accuracy_scores.append(accuracy_score(test_labels_int, predictions_int))
 
-    precision_scores = array(precision_scores)
-    recall_scores = array(recall_scores)
-    return (precision_scores, recall_scores)
+    return (array(precision_scores), array(recall_scores), array(accuracy_scores), feature_removed_mean_accuracy)
 
 def plot_data(otu_matrix, class_labels, sample_ids):
     """ For when you just want to look at some damn data """ 
@@ -201,17 +246,18 @@ def build_list_of_classifiers(sklearn_file=None):
         classifier_names = []
         with open(sklearn_file, 'r') as f:
             for line in f:
-                input = line.strip().split('\t')
-                name = input[1]
-                parameters = {}
-                for p in input[2:]:
-                    param = p.split('=')
-                    if param[0] == 'name':
-                        name = param[1]
-                    else:
-                        parameters[param[0]] = ML_helpers.cast(param[1])
-                classifier = build_classifier(input[0], input[1], **parameters)
-                classifiers.append(classifier)
-                classifier_names.append(name)
+                if line[0] != '#':
+                    input = line.strip().split('\t')
+                    name = input[1]
+                    parameters = {}
+                    for p in input[2:]:
+                        param = p.split('=')
+                        if param[0] == 'name':
+                            name = param[1]
+                        else:
+                            parameters[param[0]] = ML_helpers.cast(param[1])
+                    classifier = build_classifier(input[0], input[1], **parameters)
+                    classifiers.append(classifier)
+                    classifier_names.append(name)
     return classifiers, classifier_names
         

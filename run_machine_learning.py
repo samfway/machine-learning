@@ -21,6 +21,10 @@ def interface():
     args.add_argument('-c', '--metadata-category', help='Metadata category')
     args.add_argument('-v', '--metadata-value', help='Metadata value') 
     args.add_argument('-s', '--sklearn-file', help='Scikit-learn configuration file')
+    args.add_argument('-f', '--find-features', help='Find best features for each classifier', \
+                            action='store_true')
+    args.add_argument('-o', '--output-file', help='Output file for report (default: ML-report.txt)', \
+                            default='ML-report.txt', type=str)
     args = args.parse_args()
     return args
 
@@ -50,7 +54,7 @@ if __name__=="__main__":
     test_sets = ML.get_test_sets(class_labels, args.num_folds)
 
     ML.compare_classifiers(list_of_classifiers, name_of_classifiers, otu_matrix, class_labels, \
-        sample_ids, test_sets)
+        sample_ids, test_sets, args.find_features, args.output_file)
 
     #otu_matrix = ML.reduce_dimensionality(otu_matrix)
 
