@@ -14,7 +14,7 @@ __status__ = "Development"
 
 from biom.parse import parse_biom_table
 from biom.table import DenseTable
-from collections import Counter
+from collections import defaultdict
 from numpy import asarray, array, delete, mean
 from qiime.parse import parse_mapping_file_to_dict
 from random import shuffle
@@ -101,13 +101,16 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
     # Find most significant features if requested
     k_best_features = None
     if find_best_features:
-        selector = SelectKBest(chi2)
+        selector = SelectKBest(f_classif)
         selector.fit(otu_matrix, class_labels)
         
         # Get indexes of k-best features
-        k = min(30, int(.1 * len(otu_matrix[0])))
+        k = min(100, int(.1 * len(otu_matrix[0])))
         k_best_features = sorted(range(len(selector.scores_)), key=lambda n: selector.scores_[n], \
                 reverse=True)[:k]
+
+        # TEMPORARILY CHECKING ALL FEATURES
+        k_best_features = range(len(otu_matrix[0]))
         
     # Evaluate classifiers
     for classifier in list_of_classifiers:
@@ -135,10 +138,16 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
     # Create accuracy report
     f_out = open(output_file, 'w')
     for i, perf in enumerate(perf_measures):
-        f_out.write('Classifier %s:' % classifier_names[i])
+        f_out.write('Classifier %s:\n' % classifier_names[i])
+        
+        if len(perf[4]) > 0:
+            f_out.write('Random forest important features:\n')
+            for feature, importance_score in sorted(enumerate(mean(perf[4], axis=0)), reverse=True, \
+                                                    key=lambda x: x[1])[:k]:
+                f_out.write('  Feature %i: %.7f\n' % (feature, importance_score))
         f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
-        for key, value in perf[3].items():
-            f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, value))
+        for key, value in sorted(perf[3].items(), key=lambda x: mean(x[1]))[:k]:
+            f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, mean(value)))
         f_out.write('\n')
     f_out.close()
 
@@ -152,6 +161,8 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
     precision_scores = [] 
     recall_scores = [] 
     accuracy_scores = []
+    feature_removed_mean_accuracies = defaultdict(list)
+    feature_importances = []
 
     for train, test in test_sets:
         dev_data = otu_matrix[train,:]
@@ -167,10 +178,9 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
         test_labels_int = [ label_dict[x] for x in test_labels ] 
         predictions_int = [ label_dict[x] for x in predictions ] 
         
-        feature_removed_mean_accuracy = {}
         if k_best_features:
             for index in k_best_features:
-                # Calling remove_single_feature within the test_sets for loop so that we're not holding 
+                # Calling numpy.delete within the test_sets for loop so that we're not holding 
                 # all k otu_matrix_removed matrices in memory at once. This means we're calling 
                 # numpy.delete more times though. Not sure which is best.
                 otu_matrix_removed = delete(otu_matrix, index, 1)
@@ -181,8 +191,13 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
                 predictions_removed = classifier.predict(test_data_removed)
                 predictions_removed_int = [ label_dict[x] for x in predictions_removed ]
 
-                feature_removed_mean_accuracy[index] = mean(accuracy_score(test_labels_int, \
-                        predictions_removed_int))
+                feature_removed_mean_accuracies[index].append(mean(accuracy_score(test_labels_int, \
+                        predictions_removed_int)))
+                
+        if str(classifier).split('(')[0] == 'RandomForestClassifier':
+            print 'FEATURE IMPORTANCES:'
+            print classifier.feature_importances_
+            feature_importances.append(classifier.feature_importances_)
 
         """ If no predictions are made for class c, scikit raises a warning about there
             being no true or false positives.  With such a small amount of data, this is 
@@ -199,7 +214,8 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
             recall_scores.append(recall_score(test_labels_int, predictions_int, average=None))
             accuracy_scores.append(accuracy_score(test_labels_int, predictions_int))
 
-    return (array(precision_scores), array(recall_scores), array(accuracy_scores), feature_removed_mean_accuracy)
+    return (array(precision_scores), array(recall_scores), array(accuracy_scores), \
+            feature_removed_mean_accuracies, array(feature_importances))
 
 def plot_data(otu_matrix, class_labels, sample_ids):
     """ For when you just want to look at some damn data """ 
