@@ -100,6 +100,7 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
     
     # Find most significant features if requested
     k_best_features = None
+    k = 0
     if find_best_features:
         selector = SelectKBest(f_classif)
         selector.fit(otu_matrix, class_labels)
@@ -195,8 +196,6 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
                         predictions_removed_int)))
                 
         if str(classifier).split('(')[0] == 'RandomForestClassifier':
-            print 'FEATURE IMPORTANCES:'
-            print classifier.feature_importances_
             feature_importances.append(classifier.feature_importances_)
 
         """ If no predictions are made for class c, scikit raises a warning about there
