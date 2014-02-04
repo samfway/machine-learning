@@ -1,0 +1,19 @@
+Classifier SVM (rbf kernel):
+Mean accuracy = 0.682
+
+Classifier SVM (linear kernel):
+Mean accuracy = 0.927
+
+Classifier Random Forest:
+Random forest important features:
+Mean accuracy = 0.773
+
+Classifier Nearest Centroid:
+Mean accuracy = 0.509
+
+Classifier AdaBoost:
+Mean accuracy = 0.218
+
+Classifier Multinomial Naive Bayes:
+Mean accuracy = 0.836
+
