@@ -1,7 +1,0 @@
-svm	SVC	name=SVM (rbf kernel)	kernel=rbf
-svm	SVC	name=SVM (linear kernel)	kernel=linear
-ensemble	RandomForestClassifier	name=Random Forest	n_estimators=10
-neighbors	NearestCentroid	name=Nearest Centroid
-ensemble	AdaBoostClassifier	name=AdaBoost
-#linear_model	ElasticNet	name=Elastic Net
-naive_bayes	MultinomialNB	name=Multinomial Naive Bayes
