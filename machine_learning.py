@@ -19,7 +19,7 @@ from numpy import asarray, array, delete, mean
 from qiime.parse import parse_mapping_file_to_dict
 from random import shuffle
 from sklearn import grid_search
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.cross_validation import StratifiedKFold, KFold
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
 from sklearn.feature_selection import SelectKBest, chi2, f_classif 
 from sklearn.metrics import classification_report, precision_score, recall_score, accuracy_score
@@ -136,9 +136,14 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
         f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
         for key, value in sorted(perf[3].items(), key=lambda x: mean(x[1]))[:k]:
             f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, mean(value)))
-        
-        p_mean = mean(perf[0])
-        r_mean = mean(perf[1])
+
+        # Precision and recall scores might be dropped due to issue discussed here:
+        # https://www.mail-archive.com/scikit-learn-general@lists.sourceforge.net/msg08862.html
+        # Because of this, each cross validation test may have a different number of precision 
+        # and recall scores. Therefore we have to take the mean of each row individually before 
+        # taking the mean of the whole.
+        p_mean = mean([mean(p) for p in perf[0]])
+        r_mean = mean([mean(r) for r in perf[1]])
         f_out.write('Mean precision = %.3f\n' % p_mean)
         f_out.write('Mean recall = %.3f\n' % r_mean)
         f_out.write('Mean f-score = %.3f\n' % ((2*p_mean*r_mean)/(p_mean+r_mean)))
@@ -149,27 +154,32 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
                                                     key=lambda x: x[1])[:k]:
                 f_out.write('  Feature %i: %.7f\n' % (feature, importance_score))
         f_out.write('\n')
+ 
     f_out.write('\n')
-    
-    # Write classifier scores by category
-    f_out.write('Scores by category\n')
-    f_out.write('------------------\n\n')
-    for j in xrange(len(unique_labels)):
-        f_out.write('%s\n' % unique_labels[j])
-        for i, perf in enumerate(perf_measures):
-            precision = perf[0][:, j]
-            recall = perf[1][:, j]
-            f1 = array([ (2*p*r)/(p+r) for p,r in zip(precision,recall) ])
-            p_dev = precision.std()*2
-            r_dev = recall.std()*2
-            f_dev = f1.std()*2
-            p_mean = precision.mean() 
-            r_mean = recall.mean()
-            f_mean = f1.mean()
-            name = classifier_names[i]
-            f_out.write('[%s]%s\tPrecision: %.2f (+/- %.2f)\tRecall: %.2f (+/- %.2f) \t F1: %.2f (+/- %.2f)\n' % \
-                (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev))
-        f_out.write('\n')
+ 
+    # REMOVED:
+    # This can't be done the way it currently is by looping through xrange of
+    # unique_labels. In evaluate_classifier, sklearn.precision_score and
+    # sklearn.recall_score could possible drop columns, so there is no
+    # gaurantee that the columns will line up with the unique_labels index.
+    #f_out.write('Scores by category\n')
+    #f_out.write('------------------\n\n')
+    #for j in xrange(len(unique_labels)):
+    #    f_out.write('%s\n' % unique_labels[j])
+    #    for i, perf in enumerate(perf_measures):
+    #        precision = perf[0][:, j]
+    #        recall = perf[1][:, j]
+    #        f1 = array([ (2*p*r)/(p+r) for p,r in zip(precision,recall) ])
+    #        p_dev = precision.std()*2
+    #        r_dev = recall.std()*2
+    #        f_dev = f1.std()*2
+    #        p_mean = precision.mean() 
+    #        r_mean = recall.mean()
+    #        f_mean = f1.mean()
+    #        name = classifier_names[i]
+    #        f_out.write('[%s]%s\tPrecision: %.2f (+/- %.2f)\tRecall: %.2f (+/- %.2f) \t F1: %.2f (+/- %.2f)\n' % \
+    #            (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev))
+    #    f_out.write('\n')
 
     f_out.close()
 
@@ -199,7 +209,7 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
 
         test_labels_int = [ label_dict[x] for x in test_labels ] 
         predictions_int = [ label_dict[x] for x in predictions ] 
-        
+       
         if k_best_features:
             for index in k_best_features:
                 # Calling numpy.delete within the test_sets for loop so that we're not holding 
@@ -233,7 +243,7 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
             precision_scores.append(precision_score(test_labels_int, predictions_int, average=None))
             recall_scores.append(recall_score(test_labels_int, predictions_int, average=None))
             accuracy_scores.append(accuracy_score(test_labels_int, predictions_int))
-
+    
     return (array(precision_scores), array(recall_scores), array(accuracy_scores), \
             feature_removed_mean_accuracies, array(feature_importances))
 
