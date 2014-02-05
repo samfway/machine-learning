@@ -45,7 +45,15 @@ def parse_mapping_file_to_labels(mapping_file, sample_ids, metadata_category, me
     mapping_fp = open(mapping_file, 'rU')
     mapping_dict, comments = parse_mapping_file_to_dict(mapping_fp)
 
-    class_labels = [ mapping_dict[sample_id][metadata_category] for sample_id in sample_ids]
+    class_labels = []
+    for sample_id in sample_ids:
+        try:
+            class_labels.append(mapping_dict[sample_id][metadata_category])
+        except KeyError:
+            if sample_id not in mapping_dict.keys():
+                warnings.warn('Mapping file missing sample id: %s' % sample_id)
+            else:
+                raise Exception('Mapping file missing category: %s' % metadata_category)
     if metadata_value is not None:
         class_labels = [ label==metadata_value for label in class_labels ]
         if True not in class_labels:
