@@ -23,6 +23,7 @@ from sklearn.cross_validation import StratifiedKFold, KFold
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
 from sklearn.feature_selection import SelectKBest, chi2, f_classif 
 from sklearn.metrics import classification_report, precision_score, recall_score, accuracy_score
+from time import time
 import matplotlib.pyplot as plt
 import ML_helpers
 import warnings
@@ -120,7 +121,7 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
 
         # TEMPORARILY CHECKING ALL FEATURES
         k_best_features = range(len(otu_matrix[0]))
-        
+       
     # Evaluate classifiers
     for classifier in list_of_classifiers:
         perf_measures.append(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, \
@@ -131,9 +132,9 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
     f_out.write('Scores by classifier\n')
     f_out.write('--------------------\n\n')
     for i, perf in enumerate(perf_measures):
-        f_out.write('Classifier %s:\n' % classifier_names[i])
+        f_out.write('%s (time taken = %.2fs):\n' % (classifier_names[i], perf[5]))
          
-        f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
+        f_out.write(' Mean accuracy = %.3f\n' % mean(perf[2]))
         for key, value in sorted(perf[3].items(), key=lambda x: mean(x[1]))[:k]:
             f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, mean(value)))
 
@@ -144,15 +145,16 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
         # taking the mean of the whole.
         p_mean = mean([mean(p) for p in perf[0]])
         r_mean = mean([mean(r) for r in perf[1]])
-        f_out.write('Mean precision = %.3f\n' % p_mean)
-        f_out.write('Mean recall = %.3f\n' % r_mean)
-        f_out.write('Mean f-score = %.3f\n' % ((2*p_mean*r_mean)/(p_mean+r_mean)))
+        f_out.write(' Mean precision = %.3f\n' % p_mean)
+        f_out.write(' Mean recall = %.3f\n' % r_mean)
+        f_out.write(' Mean f-score = %.3f\n' % ((2*p_mean*r_mean)/(p_mean+r_mean)))
         
         if len(perf[4]) > 0 and k > 0:
-            f_out.write('Random forest important features:\n')
+            f_out.write(' Random forest important features:\n')
             for feature, importance_score in sorted(enumerate(mean(perf[4], axis=0)), reverse=True, \
                                                     key=lambda x: x[1])[:k]:
                 f_out.write('  Feature %i: %.7f\n' % (feature, importance_score))
+        
         f_out.write('\n')
  
     f_out.write('\n')
@@ -187,6 +189,8 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
     """ Returns precision and recall measures for the provided classifier on each
         of the test sets given.  
     """
+    time_start = time()
+
     unique_labels = list(set(class_labels))
     label_dict = { key:value for value, key in enumerate(unique_labels) } 
 
@@ -244,8 +248,9 @@ def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_s
             recall_scores.append(recall_score(test_labels_int, predictions_int, average=None))
             accuracy_scores.append(accuracy_score(test_labels_int, predictions_int))
     
+    time_end = time()
     return (array(precision_scores), array(recall_scores), array(accuracy_scores), \
-            feature_removed_mean_accuracies, array(feature_importances))
+            feature_removed_mean_accuracies, array(feature_importances), time_end-time_start)
 
 def plot_data(otu_matrix, class_labels, sample_ids):
     """ For when you just want to look at some damn data """ 
