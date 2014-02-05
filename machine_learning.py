@@ -126,9 +126,36 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
         perf_measures.append(evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, \
                 test_sets, k_best_features)) 
     
-    # Print recall and precision scores
+    # Write classifier scores by classifier
+    f_out = open(output_file, 'w')
+    f_out.write('Scores by classifier\n')
+    f_out.write('--------------------\n\n')
+    for i, perf in enumerate(perf_measures):
+        f_out.write('Classifier %s:\n' % classifier_names[i])
+         
+        f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
+        for key, value in sorted(perf[3].items(), key=lambda x: mean(x[1]))[:k]:
+            f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, mean(value)))
+        
+        p_mean = mean(perf[0])
+        r_mean = mean(perf[1])
+        f_out.write('Mean precision = %.3f\n' % p_mean)
+        f_out.write('Mean recall = %.3f\n' % r_mean)
+        f_out.write('Mean f-score = %.3f\n' % ((2*p_mean*r_mean)/(p_mean+r_mean)))
+        
+        if len(perf[4]) > 0 and k > 0:
+            f_out.write('Random forest important features:\n')
+            for feature, importance_score in sorted(enumerate(mean(perf[4], axis=0)), reverse=True, \
+                                                    key=lambda x: x[1])[:k]:
+                f_out.write('  Feature %i: %.7f\n' % (feature, importance_score))
+        f_out.write('\n')
+    f_out.write('\n')
+    
+    # Write classifier scores by category
+    f_out.write('Scores by category\n')
+    f_out.write('------------------\n\n')
     for j in xrange(len(unique_labels)):
-        print unique_labels[j]
+        f_out.write('%s\n' % unique_labels[j])
         for i, perf in enumerate(perf_measures):
             precision = perf[0][:, j]
             recall = perf[1][:, j]
@@ -140,24 +167,10 @@ def compare_classifiers(list_of_classifiers, classifier_names, otu_matrix, class
             r_mean = recall.mean()
             f_mean = f1.mean()
             name = classifier_names[i]
-            print '[%s]%s\tPrecision: %.2f (+/- %.2f)\tRecall: %.2f (+/- %.2f) \t F1: %.2f (+/- %.2f)' % \
-                (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev)   
-        print ''
-
-    # Create accuracy report
-    f_out = open(output_file, 'w')
-    for i, perf in enumerate(perf_measures):
-        f_out.write('Classifier %s:\n' % classifier_names[i])
-        
-        if len(perf[4]) > 0:
-            f_out.write('Random forest important features:\n')
-            for feature, importance_score in sorted(enumerate(mean(perf[4], axis=0)), reverse=True, \
-                                                    key=lambda x: x[1])[:k]:
-                f_out.write('  Feature %i: %.7f\n' % (feature, importance_score))
-        f_out.write('Mean accuracy = %.3f\n' % mean(perf[2]))
-        for key, value in sorted(perf[3].items(), key=lambda x: mean(x[1]))[:k]:
-            f_out.write('  Accuracy with feature %i removed = %.3f\n' % (key, mean(value)))
+            f_out.write('[%s]%s\tPrecision: %.2f (+/- %.2f)\tRecall: %.2f (+/- %.2f) \t F1: %.2f (+/- %.2f)\n' % \
+                (name, ' '*(label_length-len(name)), p_mean, p_dev, r_mean, r_dev, f_mean, f_dev))
         f_out.write('\n')
+
     f_out.close()
 
 def evaluate_classifier(classifier, otu_matrix, class_labels, sample_ids, test_sets, k_best_features):
