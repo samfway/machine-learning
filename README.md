@@ -6,4 +6,4 @@ The following packages are required by the project:
 + matplotlib
 + argparse
 
-If you're reading this, you likely have qiime and matplotlib installed already.  Installing scikit-learn is really pretty simple.  [Click here][http://scikit-learn.org/stable/install.html] to see their installation instructions.  
+If you're reading this, you likely have qiime and matplotlib installed already.  Installing scikit-learn is really pretty simple.  [Click here](http://scikit-learn.org/stable/install.html) to see their installation instructions.  
