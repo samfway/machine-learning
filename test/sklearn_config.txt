@@ -1,3 +1,0 @@
-svm	SVC	name=svm-rbf	kernel=rbf
-svm	SVC	name=svm-linear	kernel=linear
-#ensemble	RandomForestClassifier	name=forest	n_estimators=10	

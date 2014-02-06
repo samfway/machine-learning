@@ -1,3 +1,0 @@
-True\Predicted	female	male	Class error
-female	197	40	0.168776371308017
-male	19	344	0.0523415977961433

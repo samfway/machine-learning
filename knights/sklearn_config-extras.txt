@@ -1,9 +1,0 @@
-ensemble	ExtraTreesClassifier	name=Extra Trees
-ensemble	GradientBoostingClassifier	name=Gradient Boosting
-hmm	GaussianHMM	name=Gaussian HMM
-hmm	MultinomialHMM	name=Multinomial HMM
-lda	LDA	name=Linear Discriminant Analysis
-linear_model	Lasso	name=Lasso
-linear_model	Lars	name=Lars
-linear_model	LassoLars	name=Lasso+Lars
-neural_network	BernoulliRBM	name=Neural Network (Bernoulli RBM)
