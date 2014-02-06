@@ -1,0 +1,40 @@
+Scores by classifier
+--------------------
+
+SVM (rbf kernel) (time taken = 0.12s):
+ Mean accuracy = 0.858
+ Mean precision = 0.882
+ Mean recall = 0.850
+ Mean f-score = 0.865
+
+SVM (linear kernel) (time taken = 0.05s):
+ Mean accuracy = 0.988
+ Mean precision = 0.992
+ Mean recall = 0.983
+ Mean f-score = 0.987
+
+Random Forest (time taken = 0.14s):
+ Mean accuracy = 0.944
+ Mean precision = 0.948
+ Mean recall = 0.939
+ Mean f-score = 0.943
+
+Nearest Centroid (time taken = 0.05s):
+ Mean accuracy = 0.849
+ Mean precision = 0.881
+ Mean recall = 0.839
+ Mean f-score = 0.859
+
+AdaBoost (time taken = 1.51s):
+ Mean accuracy = 0.954
+ Mean precision = 0.967
+ Mean recall = 0.953
+ Mean f-score = 0.960
+
+Multinomial Naive Bayes (time taken = 0.06s):
+ Mean accuracy = 0.988
+ Mean precision = 0.992
+ Mean recall = 0.983
+ Mean f-score = 0.987
+
+

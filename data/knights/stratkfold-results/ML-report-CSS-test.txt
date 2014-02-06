@@ -1,0 +1,5 @@
+Scores by classifier
+--------------------
+
+Classifier SVM (rbf kernel):
+Mean accuracy = 0.474
