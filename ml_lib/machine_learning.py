@@ -18,19 +18,22 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.cross_validation import StratifiedKFold, KFold
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
 from time import clock
 import matplotlib.pyplot as plt
 import warnings
 import pickle
 
-def get_test_sets(class_labels, kfold=10):
+def get_test_sets(class_labels, kfold=10, stratified=True):
     """ Generate lists of indices for performing k-fold cross validation
         Note: test sets are stratefied, meaning that the number of class labels
         in each test set is proportional to the number in the whole set. 
     """
-    return StratifiedKFold(class_labels, kfold)
+    if stratified: 
+        return StratifiedKFold(class_labels, kfold)
+    else: 
+        return KFold(len(class_labels), kfold)
 
 def get_predictions(model, training_matrix, training_values, test_matrix):
     """ Train and run and classification/regression model.  
