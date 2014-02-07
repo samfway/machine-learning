@@ -38,6 +38,14 @@ def parse_distance_matrix(distance_matrix_file):
     sample_ids, distance_matrix = parse_distmat(open(distance_matrix_file, 'rU'))
     return sample_ids, distance_matrix
 
+def view_metadata_categories_from_mapping_file(mapping_file):
+    """ Print list of metadata categories """ 
+    mapping_fp = open(mapping_file, 'rU')
+    mapping_dict, comments = parse_mapping_file_to_dict(mapping_fp)
+    key = mapping_dict.keys()[0]
+    for category, value in mapping_dict[key].iteritems():
+        print "%s (e.g. '%s')" % (category, value)
+
 def parse_metadata_category_from_mapping_file(mapping_file, metadata_category):
     """ Returns a dictionary mapping sample ids to values from a specified metadata category """ 
     mapping_fp = open(mapping_file, 'rU')
