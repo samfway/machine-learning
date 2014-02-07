@@ -35,7 +35,7 @@ def parse_otu_matrix(biom_file):
 
 def parse_distance_matrix(distance_matrix_file):
     """ Parses distance matrix file """
-    sample_ids, distance_matrix = parse_distmat(open(args.dm_file, 'rU'))
+    sample_ids, distance_matrix = parse_distmat(open(distance_matrix_file, 'rU'))
     return sample_ids, distance_matrix
 
 def parse_mapping_file_to_labels(mapping_file, sample_ids, metadata_category, metadata_value=None):

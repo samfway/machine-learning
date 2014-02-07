@@ -61,9 +61,9 @@ def get_test_train_set(data_matrix, actual_values, test_set, is_distance_matrix=
         test_values = actual_values[test_idx]
     else:
         train_matrix = data_matrix[train_idx,:][:,train_idx]
-        train_values = actual_values[train]
+        train_values = actual_values[train_idx]
         test_matrix = data_matrix[test_idx,:][:,train_idx]
-        test_values = labels[test_idx]
+        test_values = actual_values[test_idx]
 
     return train_matrix, train_values, test_matrix, test_values 
 

@@ -37,7 +37,7 @@ def process_command_line(args):
     if not args.dm:
         sample_ids, data_matrix = ml_parse.parse_otu_matrix(args.data_matrix)
     else:
-        sample_ids, data_matrix = ml.parse.parse_distance_matrix(args.data_matrix)
+        sample_ids, data_matrix = ml_parse.parse_distance_matrix(args.data_matrix)
 
     if args.mapping_file is not None:
         if args.metadata_category is None:
