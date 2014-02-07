@@ -22,6 +22,30 @@ from qiime.parse import parse_mapping_file_to_dict, parse_distmat
 from util import custom_cast
 import warnings
 
+def load_dataset(data_matrix_file, mapping_file, metadata_category, \
+    metadata_value, labels_file, is_distance_matrix):
+    """ Parse and prepare data for processing. """
+
+    if not is_distance_matrix:
+        sample_ids, data_matrix = parse_otu_matrix(data_matrix_file)
+    else:
+        sample_ids, data_matrix = parse_distance_matrix(data_matrix_file)
+
+    if mapping_file is not None:
+        if metadata_category is None:
+            print "To extract labels from a mapping file, you must supply the desired " + \
+                  "metadata category!"
+            exit()
+        actual_values = parse_mapping_file_to_labels(mapping_file, sample_ids, \
+            metadata_category, metadata_value)
+    else:
+        sample_ids = array([x.split('.')[0] for x in sample_ids]) # Hack to work with Dan's stuff
+        label_dict =  parse_labels_file_to_dict(labels_file)
+        data_matrix, sample_ids, actual_values = sync_labels_and_otu_matrix(data_matrix, \
+            sample_ids, label_dict)
+
+    return data_matrix, sample_ids, actual_values
+
 def parse_otu_matrix(biom_file):
     """ Parses a (dense) OTU matrix from a biom file. 
         Outputs: Dense OTU matrix, list of sample ids
@@ -76,7 +100,7 @@ def parse_mapping_file_to_labels(mapping_file, sample_ids, metadata_category, me
                 (metadata_value))
     else:
         # If no value is supplied, prefer numeric metadata values
-        class_labels = [ custom_cast(label) for label in custom_labels ] 
+        class_labels = [ custom_cast(label) for label in class_labels ] 
     return array(class_labels)
 
 def parse_labels_file_to_dict(labels_file):

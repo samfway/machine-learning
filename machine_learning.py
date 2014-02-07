@@ -31,29 +31,6 @@ def interface():
     args = args.parse_args()
     return args
 
-def process_command_line(args):
-    """ Parse and prepare data for processing. """
-
-    if not args.dm:
-        sample_ids, data_matrix = ml_parse.parse_otu_matrix(args.data_matrix)
-    else:
-        sample_ids, data_matrix = ml_parse.parse_distance_matrix(args.data_matrix)
-
-    if args.mapping_file is not None:
-        if args.metadata_category is None:
-            print "To extract labels from a mapping file, you must supply the desired " + \
-                  "metadata category!"
-            exit()
-        actual_values = ml_parse.parse_mapping_file_to_labels(args.mapping_file, sample_ids, \
-            args.metadata_category, args.metadata_value)
-    else:
-        sample_ids = array([x.split('.')[0] for x in sample_ids]) # Hack to work with Dan's stuff
-        label_dict =  ml_parse.parse_labels_file_to_dict(args.labels_file)
-        data_matrix, sample_ids, actual_values = ml_parse.sync_labels_and_otu_matrix(data_matrix, \
-            sample_ids, label_dict)
-
-    return data_matrix, sample_ids, actual_values
-
 def evaluate_classifiers(list_of_models, model_names, data_matrix, actual_values, find_features, \
                         output_file, is_distance_matrix=False):
     """ Run and evaluate the supplied dataset using 10-fold cross-validation """
@@ -65,7 +42,8 @@ def evaluate_classifiers(list_of_models, model_names, data_matrix, actual_values
 
 if __name__=="__main__":
     args = interface()
-    data_matrix, sample_ids, actual_values = process_command_line(args)
+    data_matrix, sample_ids, actual_values = ml_parse.load_dataset(args.data_matrix, args.mapping_file, \
+        args.metadata_category, args.metadata_value, args.labels_file, args.dm)
     list_of_models, model_names = ml.build_list_of_classifiers(args.sklearn_file)
     predictions = evaluate_classifiers(list_of_models, model_names, data_matrix, actual_values, \
                                         args.find_features, args.output_file, args.dm)
