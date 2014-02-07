@@ -19,6 +19,7 @@ from numpy import asarray, array, zeros
 from biom.parse import parse_biom_table
 from biom.table import DenseTable
 from qiime.parse import parse_mapping_file_to_dict, parse_distmat
+from util import custom_cast
 import warnings
 
 def parse_otu_matrix(biom_file):
@@ -73,6 +74,9 @@ def parse_mapping_file_to_labels(mapping_file, sample_ids, metadata_category, me
         if True not in class_labels:
             raise ValueError('No samples have the specified metadata_value (%s)' % \
                 (metadata_value))
+    else:
+        # If no value is supplied, prefer numeric metadata values
+        class_labels = [ custom_cast(label) for label in custom_labels ] 
     return array(class_labels)
 
 def parse_labels_file_to_dict(labels_file):
@@ -81,7 +85,7 @@ def parse_labels_file_to_dict(labels_file):
     for line in open(labels_file, 'rU'):
         pieces = line.strip().split('\t')
         if len(pieces) != 2: continue 
-        label_dict[pieces[0]] = pieces[1]
+        label_dict[pieces[0]] = custom_cast(pieces[1])
     return label_dict
 
 def sync_labels_and_otu_matrix(otu_matrix, sample_ids, labels_dict):
