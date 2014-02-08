@@ -149,6 +149,20 @@ def build_list_of_classifiers(sklearn_file=None):
     
     return classifiers, classifier_names
 
+def build_list_of_regressors(sklearn_file=None):
+    """ Build list of regression models, either from a default list or 
+        one supplied in an sklearn configuration file.
+    """
+     if sklearn_file == None:
+        models = [ build_model('svm','SVR', **{'kernel':'rbf'}), \
+                build_model('svm','SVR', **{'kernel':'linear'}), \
+                build_model('ensemble', 'RandomForestRegressor', **{'n_estimators': 10}) ]
+        model_names = ['svm-rbf', 'svm-lin', 'rf'] 
+    else:
+        classifiers, classifier_names = build_models_from_sklearn_file(sklearn_file)
+    
+    return classifiers, classifier_names
+
 def build_models_from_sklearn_file(sklearn_file):
     """ Build a list of models from configuration file """ 
     models = []
