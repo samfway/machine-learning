@@ -128,39 +128,45 @@ def plot_data(data_matrix, class_labels):
         plt.plot(kpca_data_matrix[select, 0], kpca_data_matrix[select, 1], 'o', label=label) 
     plt.show()
 
-def build_classifier(sk_module, sk_classifier, **kwargs):
+def build_model(sk_module, sk_model, **kwargs):
     """ Eventually, this function will build a classifer from a list of 
-        valid classifiers... or be deleted.  Likely the latter """ 
-    classifier = getattr(getattr(__import__('sklearn', fromlist=[sk_module]), sk_module), sk_classifier)()
-    classifier.set_params(**kwargs)
-    return classifier
+        valid models... or be deleted.  Likely the latter """ 
+    model = getattr(getattr(__import__('sklearn', fromlist=[sk_module]), sk_module), sk_model)()
+    model.set_params(**kwargs)
+    return model
           
 def build_list_of_classifiers(sklearn_file=None):
     """ Build a list of classifiers based on either a scikit-learn configuration file, or 
         using default values. 
     """ 
     if sklearn_file == None:
-        classifiers = [ build_classifier('svm','SVC', **{'kernel':'rbf'}), \
-                build_classifier('svm','SVC', **{'kernel':'linear'}), \
-                build_classifier('ensemble', 'RandomForestClassifier', **{'n_estimators': 10}) ]
+        classifiers = [ build_model('svm','SVC', **{'kernel':'rbf'}), \
+                build_model('svm','SVC', **{'kernel':'linear'}), \
+                build_model('ensemble', 'RandomForestClassifier', **{'n_estimators': 10}) ]
         classifier_names = ['svm-rbf', 'svm-lin', 'rf'] 
     else:
-        classifiers = []
-        classifier_names = []
-        with open(sklearn_file, 'r') as f:
-            for line in f:
-                if line[0] != '#':
-                    input = line.strip().split('\t')
-                    name = input[1]
-                    parameters = {}
-                    for p in input[2:]:
-                        param = p.split('=')
-                        if param[0] == 'name':
-                            name = param[1]
-                        else:
-                            parameters[param[0]] = custom_cast(param[1])
-                    classifier = build_classifier(input[0], input[1], **parameters)
-                    classifiers.append(classifier)
-                    classifier_names.append(name)
+        classifiers, classifier_names = build_models_from_sklearn_file(sklearn_file)
+    
     return classifiers, classifier_names
+
+def build_models_from_sklearn_file(sklearn_file):
+    """ Build a list of models from configuration file """ 
+    models = []
+    model_names = []
+    with open(sklearn_file, 'r') as f:
+        for line in f:
+            if line[0] != '#':
+                input = line.strip().split('\t')
+                name = input[1]
+                parameters = {}
+                for p in input[2:]:
+                    param = p.split('=')
+                    if param[0] == 'name':
+                        name = param[1]
+                    else:
+                        parameters[param[0]] = custom_cast(param[1])
+                model = build_model(input[0], input[1], **parameters)
+                models.append(model)
+                model_names.append(name)
+    return models, model_names
 
