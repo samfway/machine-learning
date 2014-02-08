@@ -14,9 +14,10 @@ __status__ = "Development"
 
 from numpy import array
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, r2_score
 
 def evaluate_classification_results(model_names, predictions, possible_labels, timers, output_file):
-    """ Classification report. 
+    """ Evaluation report for classification models. 
         "predictions" is a dictionary, with each key being the name of a classifier. 
         The value assigned to each dictionary key is a list of tuples.  Each tuple contains a list
         of predicted and true labels for a classification task.  
@@ -28,7 +29,6 @@ def evaluate_classification_results(model_names, predictions, possible_labels, t
     # Label dict will be used to convert labels into integer values for interfacing with 
     # scikit-learn's evaluation scripts. 
     label_dict = { key:value for key, value in zip(possible_labels, range(len(possible_labels))) }
-    label_length = max([len(label) for label in model_names])
 
     f_out = open(output_file, 'w')
     f_out.write('Scores by classifier\n')
@@ -67,3 +67,27 @@ def evaluate_classification_results(model_names, predictions, possible_labels, t
         f_out.write('\n')
 
     f_out.close()
+
+def evaluate_regression_results(model_names, predictions, timers, output_file):
+    """ Evaluation report for regression models. 
+    """
+    f_out = open(output_file, 'w')
+    f_out.write('Scores by regressor\n')
+    f_out.write('--------------------\n\n')
+
+    for model_name in model_names:
+
+        f_out.write('%s (total time = %.2fs):\n' % (model_name, timers[model_name]))
+
+        mse_scores = array([ mean_squared_error(actual, predicted) for predicted, actual in \
+            predictions[model_name] ])
+        r2_scores = array([ r2_score(actual, predicted) for predicted, actual in \
+            predictions[model_name] ])
+        mse_mean, mse_dev = mse_scores.mean(), 2*mse_scores.std()
+        r2_mean, r2_dev = r2_scores.mean(), 2*r2_scores.std()
+        f_out.write(' Average MSE = %.3f (+/- %.2f)\n' % (mse_mean, mse_dev))
+        f_out.write(' Average R^2 Score = %.3f (+/- %.2f)\n' % (r2_mean, r2_dev))
+        f_out.write('\n')
+
+    f_out.close()
+

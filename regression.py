@@ -37,7 +37,7 @@ def evaluate_regressors(list_of_models, model_names, data_matrix, actual_values,
     test_sets = ml.get_test_sets(actual_values, 10, stratified=False)
     predictions, timers = ml.get_cross_validation_results(list_of_models, model_names, data_matrix, \
                     actual_values, test_sets, find_features, is_distance_matrix)
-    #ml_eval.evaluate_classification_results(model_names, predictions, list(set(actual_values)), timers, output_file)
+    ml_eval.evaluate_regression_results(model_names, predictions, timers, output_file)
     return predictions 
 
 if __name__=="__main__":
