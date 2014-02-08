@@ -20,7 +20,16 @@ from biom.parse import parse_biom_table
 from biom.table import DenseTable
 from qiime.parse import parse_mapping_file_to_dict, parse_distmat
 from util import custom_cast
+import pickle
 import warnings
+
+def save_predictions_to_file(predictions, filename):
+    """ Save classification results to a pickle file """
+    pickle.dump(predictions, open(filename, 'wb'))
+
+def load_predictions_from_file(filename):
+    """ Load classification/regression results from pickle file """
+    return pickle.load(open(filename, 'rb'))
 
 def load_dataset(data_matrix_file, mapping_file, metadata_category, \
     metadata_value, labels_file, is_distance_matrix):

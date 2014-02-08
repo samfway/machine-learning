@@ -9,7 +9,7 @@ import ml_lib.machine_learning as ml
 def interface():
     args = argparse.ArgumentParser(
         formatter_class=RawTextHelpFormatter,
-        description='Simple wrapper for machine_learning.py.',
+        description='Evaluation of regression models.',
         epilog='Supply the following:\n' + \
                   '* OTU table (.biom)\n\n' + \
                   'And either of these two options:\n' + \
@@ -31,13 +31,13 @@ def interface():
     args = args.parse_args()
     return args
 
-def evaluate_classifiers(list_of_models, model_names, data_matrix, actual_values, find_features, \
+def evaluate_regressors(list_of_models, model_names, data_matrix, actual_values, find_features, \
                         output_file, is_distance_matrix=False):
     """ Run and evaluate the supplied dataset using 10-fold cross-validation """
-    test_sets = ml.get_test_sets(actual_values, 10)
+    test_sets = ml.get_test_sets(actual_values, 10, stratified=False)
     predictions, timers = ml.get_cross_validation_results(list_of_models, model_names, data_matrix, \
                     actual_values, test_sets, find_features, is_distance_matrix)
-    ml_eval.evaluate_classification_results(model_names, predictions, list(set(actual_values)), timers, output_file)
+    #ml_eval.evaluate_classification_results(model_names, predictions, list(set(actual_values)), timers, output_file)
     return predictions 
 
 if __name__=="__main__":
@@ -45,7 +45,7 @@ if __name__=="__main__":
     data_matrix, sample_ids, actual_values = ml_parse.load_dataset(args.data_matrix, args.mapping_file, \
         args.metadata_category, args.metadata_value, args.labels_file, args.dm)
     list_of_models, model_names = ml.build_list_of_classifiers(args.sklearn_file)
-    predictions = evaluate_classifiers(list_of_models, model_names, data_matrix, actual_values, \
+    predictions = evaluate_regressors(list_of_models, model_names, data_matrix, actual_values, \
                                         args.find_features, args.output_file, args.dm)
     ml_parse.save_predictions_to_file(predictions, args.prediction_file)
 

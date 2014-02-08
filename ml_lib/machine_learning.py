@@ -24,7 +24,6 @@ from time import clock
 from util import custom_cast
 import matplotlib.pyplot as plt
 import warnings
-import pickle
 
 def get_test_sets(class_labels, kfold=10, stratified=True):
     """ Generate lists of indices for performing k-fold cross validation
@@ -97,14 +96,6 @@ def get_cross_validation_results(list_of_models, model_names, data_matrix, actua
 
     return predictions, timers
 
-def save_predictions_to_file(predictions, filename):
-    """ Save classification results to a pickle file """ 
-    pickle.dump(predictions, open(filename, 'wb'))
-
-def load_predictions_from_file(filename):
-    """ Load classification/regression results from pickle file """
-    return pickle.load(open(filename, 'rb'))
-
 def plot_data(data_matrix, class_labels):
     """ For when you just want to look at some data """ 
     kpca = KernelPCA(kernel='cosine')
@@ -153,7 +144,7 @@ def build_list_of_regressors(sklearn_file=None):
     """ Build list of regression models, either from a default list or 
         one supplied in an sklearn configuration file.
     """
-     if sklearn_file == None:
+    if sklearn_file == None:
         models = [ build_model('svm','SVR', **{'kernel':'rbf'}), \
                 build_model('svm','SVR', **{'kernel':'linear'}), \
                 build_model('ensemble', 'RandomForestRegressor', **{'n_estimators': 10}) ]
