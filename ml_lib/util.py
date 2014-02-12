@@ -20,15 +20,9 @@ def bool_cast(s):
         return False
     raise ValueError('Could not cast to ')
 
-def num_cast(s):
-    """ Convert string to int/float """ 
-    if float(s) % 1 == 0:
-        return int(s)
-    return float(s)
-
 def custom_cast(s):
     """ Convert to number/binary/string in that order of preference """
-    for cast_func in (num_cast, bool_cast, str):
+    for cast_func in (int, float, bool_cast, str):
         try:
             return cast_func(s)
         except ValueError:
